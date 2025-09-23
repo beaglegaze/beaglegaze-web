@@ -19,9 +19,22 @@ export function Web3Provider({ children }) {
 
     const eth = typeof window !== "undefined" ? window.ethereum : null;
     if (eth) {
-      const onAccountsChanged = (accs) => {
-        if (accs?.length) setAddress(ethers.getAddress(accs[0]));
-        else {
+      const onAccountsChanged = async (accs) => {
+        if (accs?.length) {
+          try {
+            const addr = ethers.getAddress(accs[0]);
+            setAddress(addr);
+            // Refresh signer to the newly selected account
+            if (p) {
+              const s = await p.getSigner(addr);
+              setSigner(s);
+            } else {
+              setSigner(null);
+            }
+          } catch {
+            setSigner(null);
+          }
+        } else {
           setAddress(null);
           setSigner(null);
         }
@@ -30,7 +43,7 @@ export function Web3Provider({ children }) {
         try {
           const id = parseInt(hexChainId, 16);
           if (!Number.isNaN(id)) setChainId(id);
-        } catch {}
+        } catch { }
       };
 
       eth.on && eth.on("accountsChanged", onAccountsChanged);
@@ -43,9 +56,9 @@ export function Web3Provider({ children }) {
             try {
               const id = parseInt(hex, 16);
               if (!Number.isNaN(id)) setChainId(id);
-            } catch {}
+            } catch { }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       return () => {
@@ -62,14 +75,14 @@ export function Web3Provider({ children }) {
       const accounts = await provider.send("eth_requestAccounts", []);
       const addr = ethers.getAddress(accounts[0]);
       setAddress(addr);
-      const s = await provider.getSigner();
+      const s = await provider.getSigner(addr);
       setSigner(s);
       // Use eth_chainId to avoid network change errors
       try {
         const hex = await provider.send("eth_chainId", []);
         const id = parseInt(hex, 16);
         if (!Number.isNaN(id)) setChainId(id);
-      } catch {}
+      } catch { }
       return addr;
     } finally {
       setConnecting(false);
