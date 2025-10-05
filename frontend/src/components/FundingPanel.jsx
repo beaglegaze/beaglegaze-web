@@ -110,7 +110,7 @@ export default function FundingPanel() {
     };
   }, [contract, address, fetchFundingCallback]);
 
-  const eth = useMemo(() => (wei ? ethers.formatEther(wei) : null), [wei]);
+  const gwei = useMemo(() => (wei ? ethers.formatUnits(wei, 'gwei') : null), [wei]);
 
   const onRequestPayout = async () => {
     if (!address || !isCorrectNetwork || !contract) return;
@@ -151,7 +151,7 @@ export default function FundingPanel() {
         <>
           <div className="row"><div><span className="label">Contract</span> <span title={activeAddress}>{shortenAddress(activeAddress)}</span></div></div>
           <div className="row">
-            <div><span className="label">Funding</span> for <span title={address}>{shortenAddress(address)}</span>: {eth !== null ? `${eth} ETH` : "-"}</div>
+            <div><span className="label">Funding</span> for <span title={address}>{shortenAddress(address)}</span>: {gwei !== null ? `${gwei} Gwei` : "-"}</div>
             <button className="danger" onClick={onRequestPayout} disabled={!contract || payoutPending}>{payoutPending ? "Requesting..." : "Request Payout"}</button>
           </div>
           <div className="row"><div><span className="label">Subscription</span> {subscriptionValid === null ? '-' : (subscriptionValid ? <span style={{ color: '#22c55e' }}>Active</span> : <span style={{ color: '#ef4444' }}>Inactive</span>)}</div></div>

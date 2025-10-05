@@ -180,7 +180,7 @@ export default function DeveloperPanel() {
     }
   };
 
-  const balanceEth = useMemo(() => (developerBalance ? ethers.formatEther(developerBalance) : null), [developerBalance]);
+  const balanceGwei = useMemo(() => (developerBalance ? ethers.formatUnits(developerBalance, 'gwei') : null), [developerBalance]);
 
   const getStatusDisplay = () => {
     if (isDeveloper) return <span style={{ color: '#22c55e' }}>Registered Developer</span>;
@@ -212,7 +212,7 @@ export default function DeveloperPanel() {
           </div>
           {isDeveloper && (
             <div className="row">
-              <div><span className="label">Balance</span> {balanceEth !== null ? `${balanceEth} ETH` : "-"}</div>
+              <div><span className="label">Balance</span> {balanceGwei !== null ? `${balanceGwei} Gwei` : "-"}</div>
               <button
                 className="danger"
                 onClick={onRequestPayout}
