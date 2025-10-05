@@ -16,6 +16,7 @@ export default function FundingPanel() {
   const [error, setError] = useState(null);
   const [subscriptionValid, setSubscriptionValid] = useState(null);
   const [payoutPending, setPayoutPending] = useState(false);
+  const [nextPollCountdown, setNextPollCountdown] = useState(0);
   const { addToast } = useToast();
 
   const activeAddress = current?.address || ENV_CONTRACT_ADDRESS;
@@ -56,6 +57,7 @@ export default function FundingPanel() {
   useEffect(() => {
     console.log('FundingPanel useEffect triggered - contract:', !!contract, 'address:', address);
     setWei(null);
+    setNextPollCountdown(0);
     if (!contract || !address) return;
     
     // Initial fetch
@@ -74,6 +76,8 @@ export default function FundingPanel() {
           clientAddress.toLowerCase() === address.toLowerCase()) {
         console.log('Updating funding from Consumed event for current signer:', newFunding.toString());
         setWei(newFunding);
+        // Reset countdown when we get a real-time update
+        setNextPollCountdown(Number(POLL_INTERVAL_MS) * 5);
       } else {
         console.log('Ignoring Consumed event - not for current signer/address');
       }
@@ -82,11 +86,26 @@ export default function FundingPanel() {
     // Listen for the Consumed event
     contract.on('Consumed', handleConsumed);
     
+    // Set up countdown timer (updates every second)
+    const pollIntervalMs = Number(POLL_INTERVAL_MS) * 5;
+    setNextPollCountdown(pollIntervalMs);
+    
+    const countdownId = setInterval(() => {
+      setNextPollCountdown(prev => {
+        const next = prev - 1000;
+        return next <= 0 ? pollIntervalMs : next;
+      });
+    }, 1000);
+    
     // Keep a longer interval polling as backup in case events are missed
-    const id = setInterval(fetchFundingCallback, Number(POLL_INTERVAL_MS) * 5);
+    const id = setInterval(() => {
+      fetchFundingCallback();
+      setNextPollCountdown(pollIntervalMs);
+    }, pollIntervalMs);
     
     return () => {
       clearInterval(id);
+      clearInterval(countdownId);
       contract.off('Consumed', handleConsumed);
     };
   }, [contract, address, fetchFundingCallback]);
@@ -110,6 +129,13 @@ export default function FundingPanel() {
     }
   };
 
+  const onRefreshFunding = async () => {
+    if (!contract || !address) return;
+    await fetchFundingCallback();
+    // Reset countdown timer
+    setNextPollCountdown(Number(POLL_INTERVAL_MS) * 5);
+  };
+
   return (
   <div>
       <h3>Client Funding</h3>
@@ -128,7 +154,15 @@ export default function FundingPanel() {
             <div><span className="label">Funding</span> for <span title={address}>{shortenAddress(address)}</span>: {eth !== null ? `${eth} ETH` : "-"}</div>
             <button className="danger" onClick={onRequestPayout} disabled={!contract || payoutPending}>{payoutPending ? "Requesting..." : "Request Payout"}</button>
           </div>
-      <div className="row"><div><span className="label">Subscription</span> {subscriptionValid === null ? '-' : (subscriptionValid ? <span style={{ color: '#22c55e' }}>Active</span> : <span style={{ color: '#ef4444' }}>Inactive</span>)}</div></div>
+          <div className="row"><div><span className="label">Subscription</span> {subscriptionValid === null ? '-' : (subscriptionValid ? <span style={{ color: '#22c55e' }}>Active</span> : <span style={{ color: '#ef4444' }}>Inactive</span>)}</div></div>
+          <div className="row">
+            <div style={{ fontSize: '0.85em', color: '#666' }}>
+              Next poll in: {nextPollCountdown > 0 ? `${Math.ceil(nextPollCountdown / 1000)}s` : 'soon...'}
+            </div>
+            <button onClick={onRefreshFunding} disabled={!contract || loading}>
+              {loading ? "Refreshing..." : "Refresh Now"}
+            </button>
+          </div>
         </>
       )}
     </div>
