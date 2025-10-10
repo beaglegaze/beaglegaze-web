@@ -17,6 +17,7 @@ export default function FundingPanel() {
   const [subscriptionValid, setSubscriptionValid] = useState(null);
   const [payoutPending, setPayoutPending] = useState(false);
   const [nextPollCountdown, setNextPollCountdown] = useState(0);
+  const [useGwei, setUseGwei] = useState(true);
   const { addToast } = useToast();
 
   const activeAddress = current?.address || ENV_CONTRACT_ADDRESS;
@@ -111,6 +112,9 @@ export default function FundingPanel() {
   }, [contract, address, fetchFundingCallback]);
 
   const gwei = useMemo(() => (wei ? ethers.formatUnits(wei, 'gwei') : null), [wei]);
+  const eth = useMemo(() => (wei ? ethers.formatEther(wei) : null), [wei]);
+  const displayValue = useGwei ? gwei : eth;
+  const displayUnit = useGwei ? 'Gwei' : 'ETH';
 
   const onRequestPayout = async () => {
     if (!address || !isCorrectNetwork || !contract) return;
@@ -151,7 +155,16 @@ export default function FundingPanel() {
         <>
           <div className="row"><div><span className="label">Contract</span> <span title={activeAddress}>{shortenAddress(activeAddress)}</span></div></div>
           <div className="row">
-            <div><span className="label">Funding</span> for <span title={address}>{shortenAddress(address)}</span>: {gwei !== null ? `${gwei} Gwei` : "-"}</div>
+            <div>
+              <span className="label">Funding</span> for <span title={address}>{shortenAddress(address)}</span>: {displayValue !== null ? `${displayValue} ${displayUnit}` : "-"}
+              <button 
+                onClick={() => setUseGwei(!useGwei)} 
+                style={{ marginLeft: '8px', fontSize: '0.8em', padding: '2px 6px' }}
+                disabled={!displayValue}
+              >
+                {useGwei ? 'Show ETH' : 'Show Gwei'}
+              </button>
+            </div>
             <button className="danger" onClick={onRequestPayout} disabled={!contract || payoutPending}>{payoutPending ? "Requesting..." : "Request Payout"}</button>
           </div>
           <div className="row"><div><span className="label">Subscription</span> {subscriptionValid === null ? '-' : (subscriptionValid ? <span style={{ color: '#22c55e' }}>Active</span> : <span style={{ color: '#ef4444' }}>Inactive</span>)}</div></div>

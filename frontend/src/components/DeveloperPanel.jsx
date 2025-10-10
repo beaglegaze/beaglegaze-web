@@ -20,6 +20,7 @@ export default function DeveloperPanel() {
   const [error, setError] = useState(null);
   const [requestPending, setRequestPending] = useState(false);
   const [payoutPending, setPayoutPending] = useState(false);
+  const [useGwei, setUseGwei] = useState(true);
   // Developer approvals UI state
   const [candidate, setCandidate] = useState("");
   const [checkPending, setCheckPending] = useState(false);
@@ -181,6 +182,9 @@ export default function DeveloperPanel() {
   };
 
   const balanceGwei = useMemo(() => (developerBalance ? ethers.formatUnits(developerBalance, 'gwei') : null), [developerBalance]);
+  const balanceEth = useMemo(() => (developerBalance ? ethers.formatEther(developerBalance) : null), [developerBalance]);
+  const displayValue = useGwei ? balanceGwei : balanceEth;
+  const displayUnit = useGwei ? 'Gwei' : 'ETH';
 
   const getStatusDisplay = () => {
     if (isDeveloper) return <span style={{ color: '#22c55e' }}>Registered Developer</span>;
@@ -212,7 +216,16 @@ export default function DeveloperPanel() {
           </div>
           {isDeveloper && (
             <div className="row">
-              <div><span className="label">Balance</span> {balanceGwei !== null ? `${balanceGwei} Gwei` : "-"}</div>
+              <div>
+                <span className="label">Balance</span> {displayValue !== null ? `${displayValue} ${displayUnit}` : "-"}
+                <button 
+                  onClick={() => setUseGwei(!useGwei)} 
+                  style={{ marginLeft: '8px', fontSize: '0.8em', padding: '2px 6px' }}
+                  disabled={!displayValue}
+                >
+                  {useGwei ? 'Show ETH' : 'Show Gwei'}
+                </button>
+              </div>
               <button
                 className="danger"
                 onClick={onRequestPayout}
